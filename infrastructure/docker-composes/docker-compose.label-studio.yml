@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    container_name: label-studio
+    restart: unless-stopped
+    environment:
+      - LABEL_STUDIO_PORT=${LABEL_STUDIO_PORT}
+      - LABEL_STUDIO_HOST=http://localhost:${LABEL_STUDIO_PORT}
+      - LABEL_STUDIO_USERNAME=${LABEL_STUDIO_USER}
+      - LABEL_STUDIO_PASSWORD=${LABEL_STUDIO_PASSWORD}
+      - LABEL_STUDIO_SECRET_KEY=${LABEL_STUDIO_SECRET_KEY}
+      
+      # Database (используем PostgreSQL)
+      - LABEL_STUDIO_DB_HOST=postgres
+      - LABEL_STUDIO_DB_PORT=5432
+      - LABEL_STUDIO_DB_NAME=label_studio
+      - LABEL_STUDIO_DB_USER=${POSTGRES_USER}
+      - LABEL_STUDIO_DB_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # S3 Storage (MinIO)
+      - LABEL_STUDIO_STORAGE_S3_ACCESS_KEY_ID=${LABEL_STUDIO_S3_ACCESS_KEY}
+      - LABEL_STUDIO_STORAGE_S3_SECRET_ACCESS_KEY=${LABEL_STUDIO_S3_SECRET_KEY}
+      - LABEL_STUDIO_STORAGE_S3_ENDPOINT=${LABEL_STUDIO_S3_ENDPOINT}
+      - LABEL_STUDIO_STORAGE_S3_BUCKET=${LABEL_STUDIO_S3_BUCKET}
+      - LABEL_STUDIO_STORAGE_S3_REGION=us-east-1
+      - LABEL_STUDIO_STORAGE_S3_PREFIX=media
+      
+      # Redis для кэширования
+      - LABEL_STUDIO_REDIS_HOST=redis
+      - LABEL_STUDIO_REDIS_PORT=6379
+      - LABEL_STUDIO_REDIS_DB=1
+      
+    ports:
+      - "${LABEL_STUDIO_PORT}:${LABEL_STUDIO_PORT}"
+      - "${LABEL_STUDIO_DATA_PORT}:8084"  # для данных
+    volumes:
+      - label_studio_data:/label-studio/data
+      - label_studio_media:/label-studio/media
+      - ./config/label-studio:/label-studio/label_studio
+    networks:
+      - devops-network
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${LABEL_STUDIO_PORT}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  label_studio_data:
+    external: true
+  label_studio_media:
+    external: true

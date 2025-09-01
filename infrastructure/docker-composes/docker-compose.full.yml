@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # Include all services from individual files
+  postgres:
+    extends:
+      file: docker-compose.postgres.yml
+      service: postgres
+
+  clearml-server:
+    extends:
+      file: docker-compose.clearml.yml
+      service: clearml-server
+
+  clearml-fileserver:
+    extends:
+      file: docker-compose.clearml.yml
+      service: clearml-fileserver
+
+  redis:
+    extends:
+      file: docker-compose.clearml.yml
+      service: redis
+
+  elasticsearch:
+    extends:
+      file: docker-compose.elk.yml
+      service: elasticsearch
+
+  logstash:
+    extends:
+      file: docker-compose.elk.yml
+      service: logstash
+
+  kibana:
+    extends:
+      file: docker-compose.elk.yml
+      service: kibana
+
+  filebeat:
+    extends:
+      file: docker-compose.elk.yml
+      service: filebeat
+
+  jenkins:
+    extends:
+      file: docker-compose.jenkins.yml
+      service: jenkins
+
+  jenkins-agent:
+    extends:
+      file: docker-compose.jenkins.yml
+      service: jenkins-agent
+
+  gitlab:
+    extends:
+      file: docker-compose.gitlab.yml
+      service: gitlab
+
+  nexus:
+    extends:
+      file: docker-compose.nexus.yml
+      service: nexus
+
+  sonarqube:
+    extends:
+      file: docker-compose.sonarqube.yml
+      service: sonarqube
+
+  minio:
+    extends:
+      file: docker-compose.data.yml
+      service: minio
+
+  lakefs:
+    extends:
+      file: docker-compose.data.yml
+      service: lakefs
+  label-studio:
+    extends:
+      file: docker-compose.label-studio.yml
+      service: label-studio
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  # Include all volumes
+  postgres_data:
+    external: true
+  elasticsearch_data:
+    external: true
+  logstash_data:
+    external: true
+  kibana_data:
+    external: true
+  filebeat_data:
+    external: true
+  clearml_storage:
+    external: true
+  jenkins_data:
+    external: true
+  nexus_data:
+    external: true
+  sonarqube_data:
+    external: true
+  sonarqube_extensions:
+    external: true
+  sonarqube_logs:
+    external: true
+  gitlab_config:
+    external: true
+  gitlab_logs:
+    external: true
+  gitlab_data:
+    external: true
+  agent-workspace:
+    external: true
+  lakefs_storage:
+    external: true
+  minio_data:
+    external: true
+  redis_data:
+    external: true
+  label_studio_data:
+    external: true
+  label_studio_media:
+    external: true

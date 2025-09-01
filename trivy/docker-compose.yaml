@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  trivy-server:
+    image: aquasec/trivy:latest
+    container_name: trivy-server
+    command: server --listen 0.0.0.0:4954
+    ports:
+      - "4954:4954"  # Пробрасываем порт сервера на хост
+    volumes:
+      - trivy-cache:/root/.cache/
+    # Сервер должен работать постоянно
+    restart: unless-stopped
+
+  trivy-client:
+    image: aquasec/trivy:latest
+    container_name: trivy-client
+    # Клиент использует серверный режим и обращается к серверу trivy-server
+    command: client --remote http://trivy-server:4954 nginx:alpine
+    depends_on:
+      - trivy-server
+    volumes:
+      # Кеш на клиенте не нужен, т.к. он использует сервер
+      - /dev/null:/root/.cache/trivy/db.tar.gz # Пустой файл, чтобы отключить кеш
+    restart: "no"
+
+volumes:
+  trivy-cache:
+    driver: local

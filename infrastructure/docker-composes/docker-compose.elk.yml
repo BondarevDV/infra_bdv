@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+      - cluster.name=devops-cluster
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: logstash
+    restart: unless-stopped
+    environment:
+      - LS_JAVA_OPTS=-Xmx1g -Xms1g
+    volumes:
+      - ../config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - logstash_data:/usr/share/logstash/data
+    ports:
+      - "5044:5044"
+    networks:
+      - devops-network
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_HOST=0.0.0.0
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+    ports:
+      - "5601:5601"
+    networks:
+      - devops-network
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: filebeat
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../config/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - filebeat_data:/usr/share/filebeat/data
+    networks:
+      - devops-network
+    depends_on:
+      - logstash
+    user: root
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  elasticsearch_data:
+    external: true
+  logstash_data:
+    external: true
+  kibana_data:
+    external: true
+  filebeat_data:
+    external: true

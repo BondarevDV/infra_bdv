@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  clearml-server:
+    image: allegroai/clearml:latest
+    container_name: clearml-server
+    restart: unless-stopped
+    environment:
+      - CLEARML_SERVER_HOST=clearml-server
+      - CLEARML_AGENT_HOST=clearml-server
+      - CLEARML_DB_HOST=postgres
+      - CLEARML_DB_PORT=5432
+      - CLEARML_DB_NAME=clearml
+      - CLEARML_DB_USER=${POSTGRES_USER}
+      - CLEARML_DB_PASS=${POSTGRES_PASSWORD}
+      - CLEARML_ELASTIC_HOST=elasticsearch
+      - CLEARML_ELASTIC_PORT=9200
+      - CLEARML_REDIS_HOST=redis
+      - CLEARML_REDIS_PORT=6379
+      - CLEARML_FILES_HOST=clearml-fileserver
+      - CLEARML_FILES_PORT=8081
+    ports:
+      - "8008:8008"
+      - "8081:8081"
+    networks:
+      - devops-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+
+  clearml-fileserver:
+    image: allegroai/clearml:latest
+    container_name: clearml-fileserver
+    restart: unless-stopped
+    command: ["fileserver"]
+    environment:
+      - CLEARML_FILES_HOST=0.0.0.0
+      - CLEARML_FILES_PORT=8081
+      - CLEARML_FILES_STORAGE=/mnt/clearml_storage
+    volumes:
+      - clearml_storage:/mnt/clearml_storage
+    networks:
+      - devops-network
+    depends_on:
+      - clearml-server
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  clearml_storage:
+    external: true
+  redis_data:
+    external: true

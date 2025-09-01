@@ -1,0 +1,50 @@
+version: '3.8'
+
+networks:
+  devops-network:
+    driver: bridge
+    name: ${NETWORK_NAME}
+
+volumes:
+  postgres_data:
+    external: true
+  elasticsearch_data:
+    external: true
+  logstash_data:
+    external: true
+  kibana_data:
+    external: true
+  filebeat_data:
+    external: true
+  metricbeat_data:
+    external: true
+  clearml_storage:
+    external: true
+  jenkins_data:
+    external: true
+  nexus_data:
+    external: true
+  sonarqube_data:
+    external: true
+  sonarqube_extensions:
+    external: true
+  sonarqube_logs:
+    external: true
+  gitlab_config:
+    external: true
+  gitlab_logs:
+    external: true
+  gitlab_data:
+    external: true
+  agent-workspace:
+    external: true
+  lakefs_storage:
+    external: true
+  minio_data:
+    external: true
+  redis_data:
+    external: true
+  label_studio_data:
+    external: true
+  label_studio_media:
+    external: true
