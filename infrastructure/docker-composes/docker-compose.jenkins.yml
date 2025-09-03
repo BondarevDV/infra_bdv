@@ -13,6 +13,7 @@ services:
       - "50000:50000"
     volumes:
       - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock  # Добавляем для Docker-in-Docker
     networks:
       - devops-network
     healthcheck:
@@ -21,24 +22,28 @@ services:
       timeout: 10s
       retries: 5
 
+  # Агент с Python и Docker (правильный тег)
   jenkins-agent:
-    image: jenkins/inbound-agent:python3.9
+    image: jenkins/inbound-agent:latest  # Используем latest или конкретную версию
     container_name: jenkins-agent
     restart: unless-stopped
     environment:
       - JENKINS_URL=http://jenkins:8080
-      - JENKINS_AGENT_NAME=ml-agent
+      - JENKINS_AGENT_NAME=ml-docker-agent
       - JENKINS_SECRET=${JENKINS_AGENT_SECRET}
       - CLEARML_API_HOST=http://clearml-server:8008
       - CLEARML_WEB_HOST=http://clearml-server:8008
       - CLEARML_FILES_HOST=http://clearml-fileserver:8081
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - agent-workspace:/home/jenkins/agent
+      - ./scripts/jenkins/agent-setup.sh:/usr/local/bin/agent-setup.sh
     networks:
       - devops-network
     depends_on:
       - jenkins
+    entrypoint: ["/bin/sh", "-c", "/usr/local/bin/agent-setup.sh && /usr/local/bin/jenkins-agent"]
 
 networks:
   devops-network:

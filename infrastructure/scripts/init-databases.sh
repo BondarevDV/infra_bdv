@@ -1,23 +1,23 @@
 #!/bin/bash
 set -e
 
-echo "Creating multiple databases for DevOps infrastructure..."
+echo "🗄️ Initializing databases..."
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE DATABASE clearml;
-    CREATE DATABASE clearml_events;
-    CREATE DATABASE lakefs;
-    CREATE DATABASE gitlab;
-    CREATE DATABASE sonarqube;
-    CREATE DATABASE nexus;
-    CREATE DATABASE label_studio;
-    GRANT ALL PRIVILEGES ON DATABASE clearml TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE clearml_events TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE lakefs TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE gitlab TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE sonarqube TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE nexus TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE label_studio TO $POSTGRES_USER;
+# Wait for PostgreSQL to be ready
+until pg_isready -h postgres -U ${POSTGRES_USER}; do
+    sleep 2
+done
+
+echo "Creating databases..."
+
+databases=("clearml" "clearml_events" "lakefs" "gitlab" "sonarqube" "nexus" "label_studio")
+
+for db in "${databases[@]}"; do
+    echo "Creating database: $db"
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE $db;
+        GRANT ALL PRIVILEGES ON DATABASE $db TO $POSTGRES_USER;
 EOSQL
+done
 
-echo "All databases created successfully!"
+echo "✅ All databases created successfully!"

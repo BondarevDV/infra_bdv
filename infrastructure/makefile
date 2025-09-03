@@ -49,7 +49,7 @@ volumes:
 # Полный запуск
 up-all: network volumes
 	@echo "Starting all services..."
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.postgres.yml \
 	-f docker-composes/docker-compose.clearml.yml \
 	-f docker-composes/docker-compose.elk.yml \
@@ -63,26 +63,26 @@ up-all: network volumes
 
 # Базовые сервисы
 up-base: network volumes
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.postgres.yml \
 	up -d
 
 # ML стек
 up-ml: network volumes
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.postgres.yml \
 	-f docker-composes/docker-compose.clearml.yml \
 	up -d
 
 # Мониторинг
 up-monitoring: network volumes
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.elk.yml \
 	up -d
 
 # CI/CD
 up-ci: network volumes
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.postgres.yml \
 	-f docker-composes/docker-compose.jenkins.yml \
 	-f docker-composes/docker-compose.gitlab.yml \
@@ -92,13 +92,13 @@ up-ci: network volumes
 
 # Data services
 up-data: network volumes
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.data.yml \
 	up -d
 
 # Остановка всех
 down-all:
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.postgres.yml \
 	-f docker-composes/docker-compose.clearml.yml \
 	-f docker-composes/docker-compose.elk.yml \
@@ -111,15 +111,15 @@ down-all:
 
 # Остановка конкретного сервиса
 down-%:
-	docker-compose -f docker-composes/docker-compose.$*.yml down
+	docker compose -f docker-composes/docker-compose.$*.yml down
 
 # Логи
 logs-%:
-	docker-compose -f docker-composes/docker-compose.$*.yml logs -f
+	docker compose -f docker-composes/docker-compose.$*.yml logs -f
 
 # Статус
 ps:
-	docker-compose -f docker-composes/docker-compose.base.yml \
+	docker compose -f docker-composes/docker-compose.base.yml \
 	-f docker-composes/docker-compose.postgres.yml \
 	-f docker-composes/docker-compose.clearml.yml \
 	-f docker-composes/docker-compose.elk.yml \
