@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'spark-masters'
+    static_configs:
+      - targets: ['spark-master-1:8080', 'spark-master-2:8080', 'spark-master-3:8080']
+    metrics_path: '/metrics/prometheus'
+
+  - job_name: 'spark-workers'
+    static_configs:
+      - targets: ['spark-worker:8081']
+    metrics_path: '/metrics/prometheus'
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.*):\d+'
+        target_label: instance
+        replacement: '$1'
+
+  - job_name: 'spark-history'
+    static_configs:
+      - targets: ['spark-history:18080']
+    metrics_path: '/metrics/prometheus'
+
+  - job_name: 'livy'
+    static_configs:
+      - targets: ['livy:8998']
+    metrics_path: '/metrics'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

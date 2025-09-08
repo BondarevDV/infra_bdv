@@ -1,0 +1,46 @@
+services:
+  keycloak:
+    image: ${KEYCLOAK_IMAGE_TAG:-quay.io/keycloak/keycloak:24.0.2}
+    container_name: keycloak
+    restart: unless-stopped
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-keycloak123}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/${KEYCLOAK_DB_NAME:-keycloak}
+      - KC_DB_USERNAME=${POSTGRES_USER:-admin}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD:-securepassword123}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_PROXY=edge
+      - KC_HTTP_ENABLED=true
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ../config/keycloak/themes:/opt/keycloak/themes
+      - ../config/keycloak/providers:/opt/keycloak/providers
+      - ../scripts/keycloak/setup-realm.sh:/opt/keycloak/setup/setup-realm.sh
+    networks:
+      - devops-network
+    depends_on:
+      - postgres
+    command: 
+      - start
+      - --import-realm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  keycloak_data:
+    external: true

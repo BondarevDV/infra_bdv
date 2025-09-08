@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8''
 
 services:
   jenkins:
@@ -9,7 +9,7 @@ services:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Duser.timezone=UTC
       - JENKINS_OPTS=--argumentsRealm.roles.user=admin --argumentsRealm.permissions.user=*
     ports:
-      - "8080:8080"
+      - "8010:8080"
       - "50000:50000"
     volumes:
       - jenkins_data:/var/jenkins_home
@@ -17,7 +17,7 @@ services:
     networks:
       - devops-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: ["CMD", "curl", "-f", "http://localhost:8010"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -28,7 +28,7 @@ services:
     container_name: jenkins-agent
     restart: unless-stopped
     environment:
-      - JENKINS_URL=http://jenkins:8080
+      - JENKINS_URL=http://jenkins:8010
       - JENKINS_AGENT_NAME=ml-docker-agent
       - JENKINS_SECRET=${JENKINS_AGENT_SECRET}
       - CLEARML_API_HOST=http://clearml-server:8008

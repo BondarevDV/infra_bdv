@@ -1,0 +1,72 @@
+services:
+  zeppelin:
+    image: ${ZEPPELIN_IMAGE_TAG:-apache/zeppelin:0.10.1}
+    container_name: zeppelin
+    restart: unless-stopped
+    environment:
+      - ZEPPELIN_PORT=${ZEPPELIN_PORT:-8080}
+      - ZEPPELIN_ADDR=0.0.0.0
+      - ZEPPELIN_NOTEBOOK_DIR=${ZEPPELIN_NOTEBOOK_DIR:-/opt/zeppelin/notebook}
+      - ZEPPELIN_INTERPRETER_DIR=${ZEPPELIN_INTERPRETER_DIR:-/opt/zeppelin/interpreter}
+      - ZEPPELIN_SPARK_MASTER=${ZEPPELIN_SPARK_MASTER:-local[*]}
+      - ZEPPELIN_SPARK_HOME=${ZEPPELIN_SPARK_HOME:-/opt/spark}
+      - ZEPPELIN_PYTHON_PATH=${ZEPPELIN_PYTHON_PATH:-/usr/bin/python3}
+      - ZEPPELIN_SERVER_JETTY_REQUEST_HEADER_SIZE=8192
+      - SPARK_HOME=/opt/spark
+      - PYSPARK_PYTHON=python3
+      - PYSPARK_DRIVER_PYTHON=python3
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "${ZEPPELIN_PORT}:8080"
+    volumes:
+      - zeppelin_data:/opt/zeppelin/notebook
+      - zeppelin_interpreter:/opt/zeppelin/interpreter
+      - ../config/zeppelin:/opt/zeppelin/conf
+      - ../notebooks/zeppelin:/opt/zeppelin/notebook
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # zeppelin-spark:
+  #   image: apache/spark:3.4.1
+  #   container_name: zeppelin-spark
+  #   restart: unless-stopped
+  #   environment:
+  #     - SPARK_MASTER=local[*]
+  #     - SPARK_MODE=master
+  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
+  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
+  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+  #     - SPARK_SSL_ENABLED=no
+  #     - TZ=${TZ:-Europe/Moscow}
+  #   ports:
+  #     - "7077:7077"
+  #     - "8081:8080"
+  #   volumes:
+  #     - spark_data:/opt/spark/work
+  #   networks:
+  #     - devops-network
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  zeppelin_data:
+    external: true
+  zeppelin_interpreter:
+    external: true
+  # spark_data:
+  #   external: true

@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+  <property>
+    <name>zeppelin.server.port</name>
+    <value>${ZEPPELIN_PORT:-8080}</value>
+    <description>Server port.</description>
+  </property>
+
+  <property>
+    <name>zeppelin.server.addr</name>
+    <value>0.0.0.0</value>
+    <description>Server address.</description>
+  </property>
+
+  <property>
+    <name>zeppelin.notebook.dir</name>
+    <value>${ZEPPELIN_NOTEBOOK_DIR:-/opt/zeppelin/notebook}</value>
+    <description>Notebook directory.</description>
+  </property>
+
+  <property>
+    <name>zeppelin.interpreter.dir</name>
+    <value>${ZEPPELIN_INTERPRETER_DIR:-/opt/zeppelin/interpreter}</value>
+    <description>Interpreter directory.</description>
+  </property>
+
+  <property>
+    <name>zeppelin.python</name>
+    <value>${ZEPPELIN_PYTHON_PATH:-/usr/bin/python3}</value>
+    <description>Python path.</description>
+  </property>
+
+  <property>
+    <name>zeppelin.spark.master</name>
+    <value>${ZEPPELIN_SPARK_MASTER:-local[*]}</value>
+    <description>Spark master URL.</description>
+  </property>
+
+  <property>
+    <name>zeppelin.spark.home</name>
+    <value>${ZEPPELIN_SPARK_HOME:-/opt/spark}</value>
+    <description>Spark home directory.</description>
+  </property>
+</configuration>

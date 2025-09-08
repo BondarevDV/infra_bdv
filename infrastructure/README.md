@@ -11,7 +11,11 @@ make up-base      # Постгрес и сеть
 make up-ml        # ClearML стек
 make up-monitoring # ELK мониторинг
 
+# Запуск JupyterHub
+make up-jupyterhub
 
+# Запуск Zeppelin
+make up-zeppelin
 
 Запуск только ML стека:
 
@@ -149,3 +153,44 @@ mc cp -r minio/label-studio-data/export/ ./labeled-datasets/
 
 
 
+# Запуск только Keycloak
+make up-keycloak
+
+# Или полный стек
+make up-all
+
+# Настройка интеграции
+./scripts/keycloak/integrate-services.sh
+
+
+Admin Console: http://localhost:8085/admin
+
+Realm: mlplatform
+
+Default Users:
+
+admin / admin123 (admin role)
+
+developer / dev123 (developer role)
+
+devops / devops123 (devops role)
+
+datascientist / ds123 (data-scientist role)
+
+mlengineer / mle123 (ml-engineer role)
+
+
+💡 Преимущества использования Keycloak
+Единая точка аутентификации для всех сервисов
+
+Централизованное управление пользователями и ролями
+
+Поддержка OAuth2/OIDC для интеграции с сервисами
+
+Готовые ролевые модели developer и devops
+
+Кастомизируемый интерфейс входа
+
+Многофакторная аутентификация (при необходимости)
+
+Брендирование под вашу ML платформу

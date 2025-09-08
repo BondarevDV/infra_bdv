@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: zookeeper:3.8
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hivepassword
+    ports:
+      - "5432:5432"
+
+  hivemetastore:
+    image: apache/hive:latest
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      HIVE_METASTORE_DB_TYPE: postgres
+      HIVE_METASTORE_DB_HOST: postgres
+      HIVE_METASTORE_DB_NAME: metastore
+      HIVE_METASTORE_DB_USER: hive
+      HIVE_METASTORE_DB_PASS: hivepassword
+    ports:
+      - "9083:9083"
+
+  hiveserver2:
+    image: apache/hive:latest
+    restart: always
+    depends_on:
+      - hivemetastore
+    environment:
+      SERVICE_TYPE: hiveserver2
+      HIVE_METASTORE_URIS: thrift://hivemetastore:9083
+    ports:
+      - "10000:10000"
+
+  spark-master:
+    image: bitnami/spark:latest
+    restart: always
+    environment:
+      SPARK_MODE: master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    depends_on:
+      - zookeeper
+
+  spark-worker:
+    image: bitnami/spark:latest
+    restart: always
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+    depends_on:
+      - spark-master
+      - hiveserver2
+
+  livy:
+    image: apache/livy:latest
+    restart: always
+    depends_on:
+      - spark-master
+    ports:
+      - "8998:8998"
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"

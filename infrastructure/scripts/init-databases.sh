@@ -4,13 +4,14 @@ set -e
 echo "🗄️ Initializing databases..."
 
 # Wait for PostgreSQL to be ready
-until pg_isready -h postgres -U ${POSTGRES_USER}; do
+until pg_isready -h postgres -U ${POSTGRES_USER:-admin}; do
     sleep 2
 done
 
 echo "Creating databases..."
 
-databases=("clearml" "clearml_events" "lakefs" "gitlab" "sonarqube" "nexus" "label_studio")
+# Обновляем список баз данных
+databases=("clearml" "clearml_events" "lakefs" "gitlab" "sonarqube" "nexus" "label_studio" "keycloak")
 
 for db in "${databases[@]}"; do
     echo "Creating database: $db"

@@ -1,0 +1,256 @@
+#version: '3.8'
+
+services:
+  # ZooKeeper для отказоустойчивости Spark Master
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOO_PORT_NUMBER=2181
+      - TZ=${TZ:-Europe/Moscow}
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Spark Masters (3 ноды для HA)
+  spark-master-1:
+    image: bitnami/spark:3.5.0
+    container_name: spark-master-1
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master-1
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_DAEMON_JAVA_OPTS=-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=zookeeper:2181
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "8081:8080"  # Web UI master 1
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+      - spark_logs:/opt/bitnami/spark/logs
+      - spark_jars:/opt/bitnami/spark/jars
+      - ../config/spark:/opt/bitnami/spark/conf
+      - ../data/spark:/data
+    networks:
+      - devops-network
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  spark-master-2:
+    image: bitnami/spark:3.5.0
+    container_name: spark-master-2
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master-2
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_DAEMON_JAVA_OPTS=-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=zookeeper:2181
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "8082:8080"  # Web UI master 2
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+      - spark_logs:/opt/bitnami/spark/logs
+      - spark_jars:/opt/bitnami/spark/jars
+      - ../config/spark:/opt/bitnami/spark/conf
+      - ../data/spark:/data
+    networks:
+      - devops-network
+    depends_on:
+      - zookeeper
+
+  spark-master-3:
+    image: bitnami/spark:3.5.0
+    container_name: spark-master-3
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master-3
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_DAEMON_JAVA_OPTS=-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=zookeeper:2181
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "8083:8080"  # Web UI master 3
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+      - spark_logs:/opt/bitnami/spark/logs
+      - spark_jars:/opt/bitnami/spark/jars
+      - ../config/spark:/opt/bitnami/spark/conf
+      - ../data/spark:/data
+    networks:
+      - devops-network
+    depends_on:
+      - zookeeper
+
+  # Spark Workers (масштабируемые)
+  spark-worker:
+    image: bitnami/spark:3.5.0
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master-1:7077,spark-master-2:7077,spark-master-3:7077
+      - SPARK_WORKER_CORES=${SPARK_WORKER_CORES:-2}
+      - SPARK_WORKER_MEMORY=${SPARK_WORKER_MEMORY:-2g}
+      - SPARK_WORKER_PORT=8881
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_DAEMON_JAVA_OPTS=-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=zookeeper:2181
+      - SPARK_METRICS_ENABLED=true
+      - SPARK_METRICS_CONF=/opt/bitnami/spark/conf/metrics.properties
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+      - spark_logs:/opt/bitnami/spark/logs
+      - spark_jars:/opt/bitnami/spark/jars
+      - ../config/spark:/opt/bitnami/spark/conf
+      - ../data/spark:/data
+    networks:
+      - devops-network
+    depends_on:
+      - spark-master-1
+      - spark-master-2
+      - spark-master-3
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 4g
+          cpus: '2'
+        reservations:
+          memory: 1g    # Гарантированно 1GB
+          cpus: '0.5'   # Гарантированно 0.5 CPU
+
+  # Apache Livy для REST интерфейса
+  livy:
+    image: tnt/livy:0.8.0-incubating
+    container_name: livy-server
+    restart: unless-stopped
+    environment:
+      - LIVY_HOST=0.0.0.0
+      - LIVY_PORT=8998
+      - SPARK_MASTER_URL=spark://spark-master-1:7077,spark-master-2:7077,spark-master-3:7077
+      - SPARK_HOME=/opt/bitnami/spark
+      - LIVY_SPARK_MASTER=spark://spark-master-1:7077,spark-master-2:7077,spark-master-3:7077
+      - LIVY_SPARK_DEPLOY_MODE=cluster
+      - TZ=${TZ:-Europe/Moscow}
+    ports:
+      - "8998:8998"  # Livy REST API
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+      - spark_logs:/opt/bitnami/spark/logs
+      - spark_jars:/opt/bitnami/spark/jars
+      - ../config/livy:/opt/livy/conf
+      - ../apps/livy:/apps
+    networks:
+      - devops-network
+    depends_on:
+      - spark-master-1
+      - spark-master-2
+      - spark-master-3
+
+  # Spark History Server
+  spark-history:
+    image: bitnami/spark:3.5.0
+    container_name: spark-history
+    restart: unless-stopped
+    environment:
+      - SPARK_MODE=history
+      - SPARK_HISTORY_FS_LOGDIRECTORY=/opt/bitnami/spark/logs
+      - SPARK_HISTORY_UI_PORT=18080
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "18080:18080"  # Spark history server
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+      - spark_logs:/opt/bitnami/spark/logs
+      - spark_jars:/opt/bitnami/spark/jars
+      - ../config/spark:/opt/bitnami/spark/conf
+    networks:
+      - devops-network
+    depends_on:
+      - zookeeper
+
+  # Prometheus для мониторинга Spark
+  spark-prometheus:
+    image: prom/prometheus:latest
+    container_name: spark-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../config/prometheus/spark-prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - devops-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Grafana для визуализации метрик Spark
+  spark-grafana:
+    image: grafana/grafana:latest
+    container_name: spark-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - TZ=${TZ:-Europe/Moscow}
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../config/grafana/provisioning:/etc/grafana/provisioning
+      - ../config/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - devops-network
+    depends_on:
+      - spark-prometheus
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  zookeeper_data:
+    external: true
+  spark_data:
+    external: true
+  spark_logs:
+    external: true
+  spark_jars:
+    external: true
+  prometheus_data:
+    external: true
+  grafana_data:
+    external: true

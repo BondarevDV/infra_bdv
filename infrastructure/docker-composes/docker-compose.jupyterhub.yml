@@ -1,0 +1,63 @@
+services:
+  jupyterhub:
+    image: ${JUPYTERHUB_IMAGE_TAG:-jupyterhub/jupyterhub:latest}
+    container_name: jupyterhub
+    restart: unless-stopped
+    environment:
+      - JUPYTERHUB_PORT=${JUPYTERHUB_PORT:-8000}
+      - JUPYTERHUB_IP=0.0.0.0
+      - JUPYTERHUB_ADMIN_USERS=${JUPYTERHUB_ADMIN_USER:-admin}
+      - JUPYTERHUB_PROXY_SECRET_TOKEN=${JUPYTERHUB_PROXY_SECRET:-jh_proxy_secret_456}
+      - JUPYTERHUB_COOKIE_SECRET=${JUPYTERHUB_COOKIE_SECRET:-jh_cookie_secret_789}
+      - JUPYTERHUB_SPAWNER_CLASS=${JUPYTERHUB_SPAWNER_CLASS:-dockerspawner.DockerSpawner}
+      - JUPYTERHUB_CONTAINER_IMAGE=${JUPYTERHUB_CONTAINER_IMAGE:-jupyter/tensorflow-notebook:latest}
+      - JUPYTERHUB_NETWORK_NAME=${JUPYTERHUB_NETWORK_NAME:-devops-network}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TZ=${TZ:-Europe/Moscow}
+      - LANG=${LANG:-en_US.UTF-8}
+    ports:
+      - "${JUPYTERHUB_PORT}:8000"
+    volumes:
+      - jupyterhub_data:/srv/jupyterhub
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../config/jupyterhub/jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+      - ../config/jupyterhub/users:/srv/jupyterhub/users
+    networks:
+      - devops-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/hub/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  jupyterhub-db:
+    image: ${POSTGRES_IMAGE_TAG:-postgres:15}
+    container_name: jupyterhub-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-securepassword123}
+      - POSTGRES_DB=jupyterhub
+      - TZ=${TZ:-Europe/Moscow}
+    volumes:
+      - jupyterhub_db_data:/var/lib/postgresql/data
+    networks:
+      - devops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  devops-network:
+    external: true
+    name: ${NETWORK_NAME}
+
+volumes:
+  jupyterhub_data:
+    external: true
+  jupyterhub_db_data:
+    external: true

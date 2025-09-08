@@ -1,0 +1,17 @@
+{
+  "admin": {
+    "password": "jupyterhub123",
+    "admin": true,
+    "groups": ["admin"]
+  },
+  "data-scientist": {
+    "password": "ds123",
+    "admin": false,
+    "groups": ["users"]
+  },
+  "ml-engineer": {
+    "password": "mle123",
+    "admin": false,
+    "groups": ["users"]
+  }
+}
